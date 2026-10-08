@@ -1,12 +1,16 @@
 import React from 'react';
 import landingBg from '../assets/landing_bg.jpg';
+import landingLogo from '../assets/landing_logo_transparent.png';
+import woodBanner from '../assets/wood_banner_clean.png';
 import { PixelIcon } from './PixelIcon.jsx';
 
-export function HomeScreen({ onStartGame, onOpenHowToPlay, isPractice, onTogglePractice, progress }) {
+export function HomeScreen({ onStartGame, onOpenHowToPlay, onOpenAuth, currentUser, progress }) {
   const completedCount = progress?.completedLevelIds?.length || 0;
   const totalScore = progress?.totalScore || 0;
   const totalAttempts = progress?.totalAttempts || 0;
   const successRate = totalAttempts > 0 ? Math.round(((progress?.successfulHeists || 0) / totalAttempts) * 100) : 0;
+
+  const agentName = currentUser?.user_metadata?.username || currentUser?.email?.split('@')[0];
 
   return (
     <div
@@ -20,50 +24,22 @@ export function HomeScreen({ onStartGame, onOpenHowToPlay, isPractice, onToggleP
     >
       {/* Foreground Interactive Content Stack */}
       <div className="home-content">
-        {/* Pure CSS 3D Pixel Title — Blends Seamlessly into Background */}
-        <div className="pixel-brand-title">
-          <div className="title-line-memory">MEMORY</div>
-          <div className="title-line-heist-row">
-            <span className="title-line-heist">HEIST</span>
-            <div className="title-diamond">
-              <PixelIcon name="gem" size={34} />
-            </div>
-          </div>
+        {/* Authentic Pixel Art Title Logo PNG */}
+        <div className="landing-logo-wrap">
+          <img
+            src={landingLogo}
+            alt="Memory Heist"
+            className="landing-logo-pixel"
+          />
         </div>
 
-        {/* Pure CSS Wooden Plank Signboard — No Image Crop Borders */}
-        <div className="wood-banner">
-          <span className="stud stud-tl" />
-          <span className="stud stud-tr" />
-          <span className="stud stud-bl" />
-          <span className="stud stud-br" />
-          <span className="wood-banner-text">STEAL THE TREASURE BEFORE THE MAP DISAPPEARS.</span>
-        </div>
-
-        {/* Mission Protocol Panel */}
-        <div className="protocol-panel">
-          <div className="protocol-tabs">
-            <button
-              className={`protocol-tab ${!isPractice ? 'active-cyan' : 'inactive'}`}
-              onClick={() => isPractice && onTogglePractice()}
-              id="normal-protocol-btn"
-            >
-              MISSION PROTOCOL
-            </button>
-            <button
-              className={`protocol-tab ${isPractice ? 'active-amber' : 'inactive'}`}
-              onClick={() => !isPractice && onTogglePractice()}
-              id="practice-mode-toggle"
-            >
-              {isPractice ? 'PRACTICE PROTOCOL' : 'NORMAL HEIST PROTOCOL'}
-            </button>
-          </div>
-
-          <p className="protocol-desc">
-            {isPractice
-              ? 'Practice Mode: Full blueprint remains visible throughout gameplay. Study guard routes and timing freely. Scores will not count toward official personal bests.'
-              : 'Standard Heist: Blueprint conceals after memorization countdown. Only 1-tile visibility is maintained with 3 temporary flash charges.'}
-          </p>
+        {/* Authentic Pixel Wooden Signboard PNG */}
+        <div className="wood-banner-pixel-wrap">
+          <img
+            src={woodBanner}
+            alt="STEAL THE TREASURE BEFORE THE MAP DISAPPEARS."
+            className="wood-banner-pixel"
+          />
         </div>
 
         {/* Large Game Buttons */}
@@ -73,6 +49,9 @@ export function HomeScreen({ onStartGame, onOpenHowToPlay, isPractice, onToggleP
           </button>
           <button className="btn btn-secondary btn-cta" onClick={onOpenHowToPlay} id="how-to-play-btn">
             <PixelIcon name="book" size={18} /> OPERATIONS MANUAL
+          </button>
+          <button className="btn btn-secondary btn-cta" onClick={onOpenAuth} id="auth-screen-btn">
+            <PixelIcon name="user" size={18} color="#25C7FF" /> {currentUser ? `AGENT: ${agentName}` : 'OPERATIVE AUTH'}
           </button>
         </div>
 

@@ -208,6 +208,126 @@ export function PixelIcon({ name, size = 16, className = '', color }) {
         </svg>
       );
 
+    case 'mail':
+    case 'envelope':
+      return (
+        <svg viewBox="0 0 16 16" style={pixelStyle} className={className}>
+          <rect x="2" y="4" width="12" height="9" fill="#17243A" stroke={color || '#6BA3C7'} strokeWidth="1" />
+          <rect x="3" y="5" width="10" height="1" fill={color || '#A8F2FF'} />
+          <rect x="4" y="6" width="2" height="1" fill={color || '#6BA3C7'} />
+          <rect x="10" y="6" width="2" height="1" fill={color || '#6BA3C7'} />
+          <rect x="6" y="7" width="4" height="1" fill={color || '#6BA3C7'} />
+          <rect x="7" y="8" width="2" height="1" fill={color || '#6BA3C7'} />
+        </svg>
+      );
+
+    case 'lock':
+      return (
+        <svg viewBox="0 0 16 16" style={pixelStyle} className={className}>
+          {/* Shackle */}
+          <rect x="5" y="2" width="6" height="5" fill="none" stroke={color || '#A8F2FF'} strokeWidth="1.5" />
+          {/* Lock body */}
+          <rect x="3" y="6" width="10" height="8" fill={color || '#FFB51B'} />
+          <rect x="3" y="6" width="10" height="2" fill="#FFD34D" />
+          {/* Keyhole */}
+          <rect x="7" y="9" width="2" height="2" fill="#091225" />
+          <rect x="7.5" y="10" width="1" height="2" fill="#091225" />
+        </svg>
+      );
+
+    case 'eye':
+      return (
+        <svg viewBox="0 0 16 16" style={pixelStyle} className={className}>
+          <rect x="2" y="7" width="12" height="2" fill={color || '#6BA3C7'} />
+          <rect x="4" y="5" width="8" height="2" fill={color || '#6BA3C7'} />
+          <rect x="4" y="9" width="8" height="2" fill={color || '#6BA3C7'} />
+          <rect x="6" y="6" width="4" height="4" fill="#08101F" />
+          <rect x="7" y="7" width="2" height="2" fill="#25C7FF" />
+          <rect x="8" y="7" width="1" height="1" fill="#FFFFFF" />
+        </svg>
+      );
+
+    case 'eye-off':
+      return (
+        <svg viewBox="0 0 16 16" style={pixelStyle} className={className}>
+          <rect x="2" y="7" width="12" height="2" fill={color || '#455A75'} />
+          <rect x="4" y="5" width="8" height="2" fill={color || '#455A75'} />
+          <rect x="4" y="9" width="8" height="2" fill={color || '#455A75'} />
+          {/* Diagonal Slash */}
+          <rect x="2" y="13" width="2" height="2" fill="#FF4B4B" />
+          <rect x="5" y="10" width="2" height="2" fill="#FF4B4B" />
+          <rect x="7" y="8" width="2" height="2" fill="#FF4B4B" />
+          <rect x="9" y="6" width="2" height="2" fill="#FF4B4B" />
+          <rect x="12" y="3" width="2" height="2" fill="#FF4B4B" />
+        </svg>
+      );
+
+    case 'user':
+      return (
+        <svg viewBox="0 0 16 16" style={pixelStyle} className={className}>
+          {/* Head */}
+          <rect x="6" y="2" width="4" height="4" fill={color || '#25C7FF'} />
+          {/* Neck */}
+          <rect x="7" y="6" width="2" height="1" fill={color || '#25C7FF'} />
+          {/* Shoulders / Torso */}
+          <rect x="3" y="8" width="10" height="5" fill={color || '#16B8F2'} />
+          <rect x="4" y="7" width="8" height="2" fill={color || '#25C7FF'} />
+          <rect x="2" y="10" width="12" height="3" fill="#101B33" />
+        </svg>
+      );
+
+    case 'user-plus':
+      return (
+        <svg viewBox="0 0 16 16" style={pixelStyle} className={className}>
+          {/* Head */}
+          <rect x="4" y="2" width="4" height="4" fill={color || '#25C7FF'} />
+          {/* Torso */}
+          <rect x="2" y="8" width="8" height="5" fill={color || '#16B8F2'} />
+          <rect x="3" y="7" width="6" height="2" fill={color || '#25C7FF'} />
+          {/* Plus */}
+          <rect x="12" y="6" width="2" height="6" fill="#FFB51B" />
+          <rect x="10" y="8" width="6" height="2" fill="#FFB51B" />
+        </svg>
+      );
+
+    case 'globe':
+      return (
+        <svg viewBox="0 0 16 16" style={pixelStyle} className={className}>
+          <rect x="4" y="2" width="8" height="12" fill={color || '#17243A'} stroke="#25C7FF" strokeWidth="1" />
+          <rect x="2" y="4" width="12" height="8" fill={color || '#17243A'} stroke="#25C7FF" strokeWidth="1" />
+          <rect x="7" y="2" width="2" height="12" fill="#45D9FF" />
+          <rect x="2" y="7" width="12" height="2" fill="#45D9FF" />
+        </svg>
+      );
+
+    case 'scroll':
+      return (
+        <svg viewBox="0 0 16 16" style={pixelStyle} className={className}>
+          {/* Parchment scroll body */}
+          <rect x="3" y="4" width="10" height="8" fill={color || '#E8D5B5'} />
+          {/* Left and right roll edges */}
+          <rect x="2" y="3" width="2" height="10" fill="#C2A882" />
+          <rect x="12" y="3" width="2" height="10" fill="#C2A882" />
+          {/* Text lines */}
+          <rect x="5" y="6" width="6" height="1" fill="#7A5835" />
+          <rect x="5" y="8" width="4" height="1" fill="#7A5835" />
+          <rect x="5" y="10" width="5" height="1" fill="#7A5835" />
+        </svg>
+      );
+
+    case 'login-arrow':
+      return (
+        <svg viewBox="0 0 16 16" style={pixelStyle} className={className}>
+          {/* Door */}
+          <rect x="1" y="2" width="2" height="12" fill="#6BA3C7" />
+          <rect x="3" y="2" width="6" height="2" fill="#6BA3C7" />
+          <rect x="3" y="12" width="6" height="2" fill="#6BA3C7" />
+          {/* Arrow */}
+          <rect x="5" y="7" width="7" height="2" fill={color || '#FFB51B'} />
+          <polygon points="12,5 15,8 12,11" fill={color || '#FFB51B'} />
+        </svg>
+      );
+
     default:
       return null;
   }

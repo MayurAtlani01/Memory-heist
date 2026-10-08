@@ -40,6 +40,7 @@ export function GameScreen({
   const lastPlayerMoveTimeRef = useRef(0);
   const activeKeysRef = useRef(new Set());
   const toastTimeoutRef = useRef(null);
+  const touchStartPosRef = useRef(null);
 
   // Helper to show transient in-game messages
   const showToast = useCallback((msg, duration = 2500) => {
@@ -241,6 +242,34 @@ export function GameScreen({
       showToast(moveResult.message);
     }
   }, [handleAttemptEnd, showToast]);
+
+  // Touch Swipe Gesture Handling on Canvas
+  const handleCanvasTouchStart = useCallback((e) => {
+    if (e.touches && e.touches.length > 0) {
+      touchStartPosRef.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY
+      };
+    }
+  }, []);
+
+  const handleCanvasTouchEnd = useCallback((e) => {
+    if (!touchStartPosRef.current || !e.changedTouches || e.changedTouches.length === 0) return;
+    const dx = e.changedTouches[0].clientX - touchStartPosRef.current.x;
+    const dy = e.changedTouches[0].clientY - touchStartPosRef.current.y;
+    touchStartPosRef.current = null;
+
+    const minSwipeDist = 24;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      if (Math.abs(dx) > minSwipeDist) {
+        executePlayerMove(dx > 0 ? 'RIGHT' : 'LEFT');
+      }
+    } else {
+      if (Math.abs(dy) > minSwipeDist) {
+        executePlayerMove(dy > 0 ? 'DOWN' : 'UP');
+      }
+    }
+  }, [executePlayerMove]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -531,7 +560,12 @@ export function GameScreen({
 
       {/* Main Dungeon Canvas Viewport */}
       <div className="dungeon-board-wrapper">
-        <div className="canvas-viewport" id="canvas-container">
+        <div
+          className="canvas-viewport"
+          id="canvas-container"
+          onTouchStart={handleCanvasTouchStart}
+          onTouchEnd={handleCanvasTouchEnd}
+        >
           <canvas ref={canvasRef} id="game-canvas" width={560} height={560} />
 
           {/* Memory Flash Active Screen Flicker Overlay */}
@@ -569,17 +603,47 @@ export function GameScreen({
       {/* Mobile Controls (D-Pad & Flash) */}
       <div className="mobile-controls">
         <div className="dpad-container">
-          <button className="dpad-btn dpad-up" onClick={() => executePlayerMove('UP')} aria-label="Move Up">▲</button>
-          <button className="dpad-btn dpad-left" onClick={() => executePlayerMove('LEFT')} aria-label="Move Left">◀</button>
-          <button className="dpad-btn dpad-down" onClick={() => executePlayerMove('DOWN')} aria-label="Move Down">▼</button>
-          <button className="dpad-btn dpad-right" onClick={() => executePlayerMove('RIGHT')} aria-label="Move Right">▶</button>
+          <button
+            className="dpad-btn dpad-up"
+            onTouchStart={(e) => { e.preventDefault(); executePlayerMove('UP'); }}
+            onClick={() => executePlayerMove('UP')}
+            aria-label="Move Up"
+          >
+            ▲
+          </button>
+          <button
+            className="dpad-btn dpad-left"
+            onTouchStart={(e) => { e.preventDefault(); executePlayerMove('LEFT'); }}
+            onClick={() => executePlayerMove('LEFT')}
+            aria-label="Move Left"
+          >
+            ◀
+          </button>
+          <button
+            className="dpad-btn dpad-down"
+            onTouchStart={(e) => { e.preventDefault(); executePlayerMove('DOWN'); }}
+            onClick={() => executePlayerMove('DOWN')}
+            aria-label="Move Down"
+          >
+            ▼
+          </button>
+          <button
+            className="dpad-btn dpad-right"
+            onTouchStart={(e) => { e.preventDefault(); executePlayerMove('RIGHT'); }}
+            onClick={() => executePlayerMove('RIGHT')}
+            aria-label="Move Right"
+          >
+            ▶
+          </button>
         </div>
 
         {!isPractice && (
           <button
             className="mobile-flash-btn"
+            onTouchStart={(e) => { e.preventDefault(); triggerMemoryFlash(); }}
             onClick={triggerMemoryFlash}
             disabled={flashesRemaining <= 0 || phase !== PHASES.HEIST}
+            aria-label="Trigger Memory Flash"
           >
             <span>FLASH</span>
             <small>({flashesRemaining} / {GAME_CONFIG.MAX_FLASHES})</small>
