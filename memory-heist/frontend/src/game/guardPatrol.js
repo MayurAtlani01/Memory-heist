@@ -38,10 +38,13 @@ export function stepGuard(guard) {
 
 /**
  * Computes straight-line tiles visible by the guard.
- * Sight is blocked by walls and locked doors.
+ * Sight is blocked by walls, locked doors, and EMP disruptions.
  */
-export function getGuardVisionTiles(guard, grid, doorUnlocked = false, width, height) {
+export function getGuardVisionTiles(guard, grid, doorUnlocked = false, width, height, empActive = false) {
   const visionTiles = [];
+  // If EMP is active, guards are blinded and flashlights are offline!
+  if (empActive) return visionTiles;
+
   const offset = DIR_OFFSETS[guard.facing];
   if (!offset) return visionTiles;
 
@@ -75,11 +78,16 @@ export function getGuardVisionTiles(guard, grid, doorUnlocked = false, width, he
 
 /**
  * Checks if the player has been spotted by any guard or stepped onto a guard.
- * Returns detection info if caught.
+ * Smoke cloaks the operative completely. EMP disables sight lines.
  */
-export function checkDetection(guards, playerPos, grid, doorUnlocked = false, width, height) {
+export function checkDetection(guards, playerPos, grid, doorUnlocked = false, width, height, empActive = false, smokeActive = false) {
+  // Tactical smoke cloud completely shrouds the operative from detection!
+  if (smokeActive) {
+    return { detected: false };
+  }
+
   for (const guard of guards) {
-    // 1. Occupying the same tile as a guard
+    // 1. Direct collision: Occupying the exact same tile as a guard
     if (guard.x === playerPos.x && guard.y === playerPos.y) {
       return {
         detected: true,
@@ -90,8 +98,8 @@ export function checkDetection(guards, playerPos, grid, doorUnlocked = false, wi
       };
     }
 
-    // 2. In guard's visible line of sight
-    const visionTiles = getGuardVisionTiles(guard, grid, doorUnlocked, width, height);
+    // 2. In guard's visible line of sight (disabled during EMP)
+    const visionTiles = getGuardVisionTiles(guard, grid, doorUnlocked, width, height, empActive);
     for (const vTile of visionTiles) {
       if (vTile.x === playerPos.x && vTile.y === playerPos.y) {
         return {

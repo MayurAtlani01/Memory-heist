@@ -145,24 +145,34 @@ export async function fetchLevel(levelId) {
           }
         }
 
+        const fallback = DEFAULT_MAPS.find((m) => m.id === data.id || m.levelNumber === data.level_number);
+        const terminalPos = data.terminal || fallback?.terminal || (data.level_number === 5 ? { x: 1, y: 8 } : null);
+
+        // For Level 5, inject terminal into grid if missing
+        const gridCopy = Array.isArray(data.grid) ? data.grid.map(row => [...row]) : fallback?.grid;
+        if (data.level_number === 5 && gridCopy && gridCopy[8] && gridCopy[8][1] === 0) {
+          gridCopy[8][1] = 7; // TERMINAL
+        }
+
         return {
           id: data.id,
           levelNumber: data.level_number,
           name: data.name,
-          description: data.description,
+          description: fallback?.description || data.description,
           difficulty: data.difficulty,
           width: data.width,
           height: data.height,
-          memorizeTimeSeconds: data.memorize_time_seconds,
-          timeLimitSeconds: data.time_limit_seconds,
+          memorizeTimeSeconds: data.level_number === 5 ? 14 : data.memorize_time_seconds,
+          timeLimitSeconds: data.level_number === 5 ? 100 : data.time_limit_seconds,
           baseScore: data.base_score || 1000,
-          grid: data.grid,
+          grid: gridCopy,
           entrance: data.entrance,
           exit: data.exit,
           key: data.key_pos,
           diamond: data.diamond_pos,
           door: doorPos,
-          guards: data.guards || []
+          terminal: terminalPos,
+          guards: data.level_number === 5 && fallback?.guards ? fallback.guards : (data.guards || [])
         };
       }
     } catch (err) {

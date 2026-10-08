@@ -59,7 +59,20 @@ const PALETTE = {
  */
 export function renderCanvas(ctx, state, options = {}) {
   const { width, height } = ctx.canvas;
-  const { level, grid, player, guards, inventory, phase, isPractice, flashState, detectionResult } = state;
+  const {
+    level,
+    grid,
+    player,
+    guards,
+    inventory,
+    phase,
+    isPractice,
+    flashState,
+    detectionResult,
+    empActive,
+    smokeState,
+    thermalRadarActive
+  } = state;
 
   ctx.clearRect(0, 0, width, height);
 
@@ -119,6 +132,8 @@ export function renderCanvas(ctx, state, options = {}) {
         drawKeyTile(ctx, px, py, tileSize);
       } else if (tile === TILES.DIAMOND) {
         drawDiamondTile(ctx, px, py, tileSize);
+      } else if (tile === TILES.TERMINAL) {
+        drawTerminalTile(ctx, px, py, tileSize);
       } else if (tile === TILES.ENTRANCE) {
         drawEntranceTile(ctx, px, py, tileSize);
       } else if (tile === TILES.EXIT) {
@@ -132,45 +147,61 @@ export function renderCanvas(ctx, state, options = {}) {
     drawPatrolRoutes(ctx, guards, offsetX, offsetY, tileSize);
   }
 
-  // 5. Draw Guard Vision Cones / Rectangular Beams (only where illuminated/visible)
-  for (const guard of guards) {
-    const visionTiles = getGuardVisionTiles(guard, grid, inventory.hasKey, mapW, mapH);
-    for (const vt of visionTiles) {
-      if (isAllVisible || isCellVisible(vt.x, vt.y, player, flashState)) {
-        const vpx = offsetX + vt.x * tileSize;
-        const vpy = offsetY + vt.y * tileSize;
-        ctx.fillStyle = PALETTE.GUARD_VISION;
-        ctx.fillRect(vpx + 1, vpy + 1, tileSize - 2, tileSize - 2);
+  // 5. Draw Guard Vision Cones / Rectangular Beams (blinded if EMP is active)
+  if (!empActive) {
+    for (const guard of guards) {
+      const visionTiles = getGuardVisionTiles(guard, grid, inventory.hasKey, mapW, mapH, empActive);
+      for (const vt of visionTiles) {
+        if (isAllVisible || isCellVisible(vt.x, vt.y, player, flashState)) {
+          const vpx = offsetX + vt.x * tileSize;
+          const vpy = offsetY + vt.y * tileSize;
+          ctx.fillStyle = PALETTE.GUARD_VISION;
+          ctx.fillRect(vpx + 1, vpy + 1, tileSize - 2, tileSize - 2);
 
-        ctx.strokeStyle = PALETTE.GUARD_VISION_BORDER;
-        ctx.lineWidth = 1;
-        ctx.strokeRect(vpx + 1, vpy + 1, tileSize - 2, tileSize - 2);
+          ctx.strokeStyle = PALETTE.GUARD_VISION_BORDER;
+          ctx.lineWidth = 1;
+          ctx.strokeRect(vpx + 1, vpy + 1, tileSize - 2, tileSize - 2);
+        }
       }
     }
   }
 
-  // 6. Draw Guards (only visible guards)
+  // 6. Draw Guards (visible or thermal radar blips)
   for (const guard of guards) {
     const isGuardVisible = isAllVisible || isCellVisible(guard.x, guard.y, player, flashState);
+    const gpx = offsetX + guard.x * tileSize;
+    const gpy = offsetY + guard.y * tileSize;
+
     if (isGuardVisible) {
-      const gpx = offsetX + guard.x * tileSize;
-      const gpy = offsetY + guard.y * tileSize;
       const isAlert = detectionResult && detectionResult.detected && detectionResult.guardId === guard.id;
       drawGuard(ctx, gpx, gpy, tileSize, guard.facing, isAlert);
+    } else if (thermalRadarActive) {
+      // Thermal infrared scanner ping blip through the dark!
+      drawThermalBlip(ctx, gpx, gpy, tileSize);
     }
   }
 
-  // 7. Draw Player (always visible)
+  // 7. Tactical Smoke Screen
+  if (smokeState && smokeState.active && smokeState.center) {
+    drawSmokeCloud(ctx, offsetX, offsetY, tileSize, smokeState);
+  }
+
+  // 8. Draw Player (always visible)
   const ppx = offsetX + player.x * tileSize;
   const ppy = offsetY + player.y * tileSize;
   drawPlayer(ctx, ppx, ppy, tileSize, player.facing, detectionResult?.detected);
 
-  // 8. Draw Memory Flash Wave / Pulse
+  // 9. Draw Memory Flash Wave / Pulse
   if (flashState && flashState.active && flashState.center) {
     drawFlashWave(ctx, offsetX, offsetY, tileSize, flashState);
   }
 
-  // 9. Draw Detection Banner if spotted
+  // 10. EMP Electric Disruption Visual Overlay
+  if (empActive) {
+    drawEmpOverlay(ctx, width, height);
+  }
+
+  // 11. Draw Detection Banner if spotted
   if (detectionResult && detectionResult.detected) {
     drawDetectionFeedback(ctx, width, height, detectionResult);
   }
@@ -594,5 +625,123 @@ function drawDetectionFeedback(ctx, width, height, detection) {
   grad.addColorStop(1, 'rgba(255, 75, 75, 0.55)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, width, height);
+  ctx.restore();
+}
+
+/**
+ * Draws a high-tech pixel-art cyber security terminal / EMP console
+ */
+function drawTerminalTile(ctx, px, py, size) {
+  const cx = px + Math.floor(size / 2);
+  const cy = py + Math.floor(size / 2);
+  const u = Math.max(2, Math.floor(size / 16));
+
+  // Cyan pulsing aura glow
+  ctx.fillStyle = 'rgba(37, 199, 255, 0.35)';
+  ctx.fillRect(cx - 7 * u, cy - 7 * u, 14 * u, 14 * u);
+
+  // Terminal server chassis (dark steel)
+  ctx.fillStyle = '#101B33';
+  ctx.fillRect(cx - 5 * u, cy - 6 * u, 10 * u, 12 * u);
+  ctx.strokeStyle = '#25C7FF';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(cx - 5 * u, cy - 6 * u, 10 * u, 12 * u);
+
+  // Glowing cyan monitor screen
+  ctx.fillStyle = '#0879A8';
+  ctx.fillRect(cx - 4 * u, cy - 5 * u, 8 * u, 5 * u);
+  ctx.fillStyle = '#A8F2FF';
+  ctx.fillRect(cx - 3 * u, cy - 4 * u, 6 * u, 3 * u);
+
+  // Blinking command line dot
+  ctx.fillStyle = '#19D99B';
+  ctx.fillRect(cx - 2 * u, cy - 3 * u, 2 * u, 1 * u);
+
+  // Lower server rack vents / LED diodes
+  ctx.fillStyle = '#FF4B4B';
+  ctx.fillRect(cx - 3 * u, cy + 2 * u, 2 * u, 1 * u);
+  ctx.fillStyle = '#FFB51B';
+  ctx.fillRect(cx, cy + 2 * u, 2 * u, 1 * u);
+  ctx.fillStyle = '#25C7FF';
+  ctx.fillRect(cx + 3 * u, cy + 2 * u, 1 * u, 1 * u);
+
+  // Bottom keyboard tray / cables
+  ctx.fillStyle = '#17243A';
+  ctx.fillRect(cx - 4 * u, cy + 4 * u, 8 * u, 1 * u);
+}
+
+/**
+ * Draws glowing infrared thermal blip for guards tracked by radar in the dark
+ */
+function drawThermalBlip(ctx, px, py, size) {
+  const cx = px + Math.floor(size / 2);
+  const cy = py + Math.floor(size / 2);
+  const r = Math.max(4, Math.floor(size * 0.26));
+
+  // Pulsing infrared thermal ring
+  ctx.fillStyle = 'rgba(255, 75, 75, 0.35)';
+  ctx.beginPath();
+  ctx.arc(cx, cy, r + 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Bright core thermal blip
+  ctx.fillStyle = '#FF4B4B';
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Center yellow heat signature
+  ctx.fillStyle = '#FFD34D';
+  ctx.beginPath();
+  ctx.arc(cx, cy, Math.max(2, r * 0.45), 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/**
+ * Draws tactical smoke cloud that shields player from guard detection
+ */
+function drawSmokeCloud(ctx, offsetX, offsetY, tileSize, smokeState) {
+  if (!smokeState || !smokeState.active || !smokeState.center) return;
+  const cx = offsetX + smokeState.center.x * tileSize + Math.floor(tileSize / 2);
+  const cy = offsetY + smokeState.center.y * tileSize + Math.floor(tileSize / 2);
+  const rad = tileSize * 1.85;
+
+  ctx.save();
+  // Radial smoke fog
+  const grad = ctx.createRadialGradient(cx, cy, tileSize * 0.2, cx, cy, rad);
+  grad.addColorStop(0, 'rgba(180, 205, 235, 0.8)');
+  grad.addColorStop(0.5, 'rgba(120, 150, 185, 0.55)');
+  grad.addColorStop(1, 'rgba(40, 60, 90, 0)');
+
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Dense smoke puffs
+  const puffs = [
+    { dx: -tileSize * 0.5, dy: -tileSize * 0.4, r: tileSize * 0.7 },
+    { dx: tileSize * 0.4, dy: -tileSize * 0.5, r: tileSize * 0.75 },
+    { dx: -tileSize * 0.4, dy: tileSize * 0.5, r: tileSize * 0.7 },
+    { dx: tileSize * 0.5, dy: tileSize * 0.4, r: tileSize * 0.65 }
+  ];
+  ctx.fillStyle = 'rgba(150, 175, 205, 0.4)';
+  for (const p of puffs) {
+    ctx.beginPath();
+    ctx.arc(cx + p.dx, cy + p.dy, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/**
+ * Draws EMP electrical grid disruption border on canvas
+ */
+function drawEmpOverlay(ctx, width, height) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(37, 199, 255, 0.45)';
+  ctx.lineWidth = 4;
+  ctx.setLineDash([8, 6]);
+  ctx.strokeRect(2, 2, width - 4, height - 4);
   ctx.restore();
 }

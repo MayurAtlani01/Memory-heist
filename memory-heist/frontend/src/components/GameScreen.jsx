@@ -35,6 +35,14 @@ export function GameScreen({
   const [activeAttemptId, setActiveAttemptId] = useState(null);
   const [isFlashing, setIsFlashing] = useState(false);
 
+  // Level 5 Master Gadget States: EMP, Thermal Radar, Smoke Cloak, Terminal
+  const [empActive, setEmpActive] = useState(false);
+  const [empTimeLeft, setEmpTimeLeft] = useState(0);
+  const [thermalRadarActive, setThermalRadarActive] = useState(false);
+  const [smokeCharges, setSmokeCharges] = useState(rawLevel.levelNumber === 5 ? GAME_CONFIG.MAX_SMOKE_CHARGES : 0);
+  const [isSmokeActive, setIsSmokeActive] = useState(false);
+  const [terminalHacked, setTerminalHacked] = useState(false);
+
   // Timers and Animation Frame refs
   const animationFrameIdRef = useRef(null);
   const lastPlayerMoveTimeRef = useRef(0);
@@ -67,6 +75,11 @@ export function GameScreen({
       heistRemainingMs: (parsed.timeLimitSeconds || 60) * 1000,
       flashesLeft: GAME_CONFIG.MAX_FLASHES,
       flashState: { active: false, center: null, expireTime: 0 },
+      empActive: false,
+      empExpireTime: 0,
+      thermalRadarActive: false,
+      smokeCharges: parsed.levelNumber === 5 ? GAME_CONFIG.MAX_SMOKE_CHARGES : 0,
+      smokeState: { active: false, center: null, expireTime: 0 },
       detectionResult: null,
       isPaused: false
     };
@@ -79,6 +92,12 @@ export function GameScreen({
     setIsPaused(false);
     setIsFlashing(false);
     setAttemptResult(null);
+    setEmpActive(false);
+    setEmpTimeLeft(0);
+    setThermalRadarActive(false);
+    setSmokeCharges(parsed.levelNumber === 5 ? GAME_CONFIG.MAX_SMOKE_CHARGES : 0);
+    setIsSmokeActive(false);
+    setTerminalHacked(false);
 
     // Register attempt with backend
     try {
@@ -180,6 +199,33 @@ export function GameScreen({
     }, GAME_CONFIG.FLASH_DURATION_MS);
   }, [showToast]);
 
+  // Deploy Tactical Smoke Cloak (Level 5 Special Equipment)
+  const deploySmoke = useCallback(() => {
+    const s = stateRef.current;
+    if (!s || s.phase !== PHASES.HEIST || s.isPaused) return;
+
+    if (s.smokeState && s.smokeState.active) {
+      showToast('Tactical smoke cloak already active!');
+      return;
+    }
+
+    if (s.smokeCharges <= 0) {
+      showToast('No smoke cloaks remaining!');
+      return;
+    }
+
+    s.smokeCharges -= 1;
+    s.smokeState = {
+      active: true,
+      center: { x: s.player.x, y: s.player.y },
+      expireTime: performance.now() + GAME_CONFIG.SMOKE_DURATION_MS
+    };
+
+    setSmokeCharges(s.smokeCharges);
+    setIsSmokeActive(true);
+    showToast('💨 TACTICAL SMOKE DEPLOYED: Undetectable by patrols for 4.5s!', 2500);
+  }, [showToast]);
+
   // Pause toggle
   const togglePause = useCallback(() => {
     const s = stateRef.current;
@@ -254,6 +300,20 @@ export function GameScreen({
         showToast('💎 Diamond stolen! Extraction route open — head to EXIT!', 4000);
       }
 
+      if (moveResult.terminalHacked) {
+        s.empActive = true;
+        s.empExpireTime = now + GAME_CONFIG.EMP_DURATION_MS;
+        s.thermalRadarActive = true;
+        s.flashesLeft = Math.min(GAME_CONFIG.MAX_FLASHES + 2, s.flashesLeft + 2);
+        s.grid[moveResult.newY][moveResult.newX] = 0; // EMPTY
+        setTerminalHacked(true);
+        setEmpActive(true);
+        setEmpTimeLeft(Math.ceil(GAME_CONFIG.EMP_DURATION_MS / 1000));
+        setThermalRadarActive(true);
+        setFlashesRemaining(s.flashesLeft);
+        showToast('⚡ SECURITY TERMINAL OVERRIDDEN! EMP active (15s): Guards blinded & Thermal Radar online!', 4500);
+      }
+
       if (moveResult.exitReached) {
         if (moveResult.canExit) {
           handleAttemptEnd(true, 'DIAMOND_SECURED');
@@ -263,7 +323,7 @@ export function GameScreen({
         }
       }
 
-      const detection = checkDetection(s.guards, s.player, s.grid, s.inventory.hasKey, s.level.width, s.level.height);
+      const detection = checkDetection(s.guards, s.player, s.grid, s.inventory.hasKey, s.level.width, s.level.height, s.empActive, s.smokeState?.active);
       if (detection.detected) {
         s.detectionResult = detection;
         handleAttemptEnd(false, detection.reason);
@@ -318,6 +378,11 @@ export function GameScreen({
         return;
       }
 
+      if (['e', 'c', 'x'].includes(e.key.toLowerCase())) {
+        deploySmoke();
+        return;
+      }
+
       activeKeysRef.current.add(e.key.toLowerCase());
 
       if (['arrowup', 'w'].includes(e.key.toLowerCase())) executePlayerMove('UP');
@@ -336,7 +401,7 @@ export function GameScreen({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [togglePause, triggerMemoryFlash, executePlayerMove]);
+  }, [togglePause, triggerMemoryFlash, deploySmoke, executePlayerMove]);
 
   // Main 60fps Game Loop
   useEffect(() => {
@@ -386,6 +451,26 @@ export function GameScreen({
             }
           }
 
+          // Active EMP grid disruption countdown
+          if (s.empActive) {
+            if (currentTime >= s.empExpireTime) {
+              s.empActive = false;
+              setEmpActive(false);
+              setEmpTimeLeft(0);
+              showToast('⚡ EMP Expired: Guard flashlight grid online!', 2500);
+            } else {
+              setEmpTimeLeft(Math.max(0, Math.ceil((s.empExpireTime - currentTime) / 1000)));
+            }
+          }
+
+          // Tactical smoke screen duration check
+          if (s.smokeState && s.smokeState.active) {
+            if (currentTime >= s.smokeState.expireTime) {
+              s.smokeState.active = false;
+              setIsSmokeActive(false);
+            }
+          }
+
           for (let i = 0; i < s.guards.length; i++) {
             const guard = s.guards[i];
             if (!guard.lastMoveTime) guard.lastMoveTime = currentTime;
@@ -394,7 +479,7 @@ export function GameScreen({
               s.guards[i] = stepGuard(guard);
               s.guards[i].lastMoveTime = currentTime;
 
-              const detection = checkDetection(s.guards, s.player, s.grid, s.inventory.hasKey, s.level.width, s.level.height);
+              const detection = checkDetection(s.guards, s.player, s.grid, s.inventory.hasKey, s.level.width, s.level.height, s.empActive, s.smokeState?.active);
               if (detection.detected) {
                 s.detectionResult = detection;
                 handleAttemptEnd(false, detection.reason);
@@ -493,6 +578,21 @@ export function GameScreen({
               </div>
             </div>
 
+            {/* Level 5 Master Intel Dossier */}
+            {rawLevel.levelNumber === 5 && (
+              <div className="briefing-intel-dossier">
+                <div className="intel-header">⚡ VAULT 5 TACTICAL PROTOCOL</div>
+                <div className="intel-bullet">
+                  <span className="intel-icon">💻</span>
+                  <span><strong>Security Override Terminal:</strong> Infiltrate the terminal on the left corridor to trigger a 15s EMP blackout, reveal guards on Thermal Radar, and restore +2 Flashes!</span>
+                </div>
+                <div className="intel-bullet">
+                  <span className="intel-icon">💨</span>
+                  <span><strong>Tactical Smoke Cloak (Key [E] / Button):</strong> Deploy 2 smoke screens (4.5s each) to move undetected through patrol sightlines.</span>
+                </div>
+              </div>
+            )}
+
             {/* Big Gold Memorization Button */}
             <button
               className="btn btn-primary btn-memorize-cta"
@@ -541,7 +641,7 @@ export function GameScreen({
           )}
         </div>
 
-        {/* Items & Flash Slots */}
+        {/* Items, Gadgets & Flash Slots */}
         <div className="hud-items-tray">
           <div className={`hud-item-slot ${inventory.hasKey ? 'slot-acquired' : ''}`} title="Brass Vault Key">
             <span className="item-slot-label">KEY</span>
@@ -555,12 +655,20 @@ export function GameScreen({
             {inventory.hasDiamond && <span className="item-checkmark">✓</span>}
           </div>
 
-          {/* Flash System (3 square indicators) */}
+          {rawLevel.levelNumber === 5 && (
+            <div className={`hud-item-slot ${terminalHacked ? 'slot-acquired' : ''}`} title="Security Terminal (EMP Blackout & Radar)">
+              <span className="item-slot-label">EMP</span>
+              <span style={{ fontSize: '14px', lineHeight: 1 }}>💻</span>
+              {terminalHacked && <span className="item-checkmark">✓</span>}
+            </div>
+          )}
+
+          {/* Flash System (indicators) */}
           {!isPractice && (
             <div className="hud-flash-system" title="Memory Flashes (Press SPACE)">
               <span className="flash-label">FLASH</span>
               <div className="flash-boxes-row">
-                {[...Array(GAME_CONFIG.MAX_FLASHES)].map((_, idx) => (
+                {[...Array(Math.max(GAME_CONFIG.MAX_FLASHES, flashesRemaining))].map((_, idx) => (
                   <div
                     key={idx}
                     className={`flash-square-indicator ${
@@ -571,18 +679,45 @@ export function GameScreen({
               </div>
             </div>
           )}
+
+          {/* Tactical Smoke Button (Vault 5 Gadget) */}
+          {(smokeCharges > 0 || isSmokeActive || rawLevel.levelNumber === 5) && !isPractice && (
+            <button
+              className={`hud-smoke-trigger ${isSmokeActive ? 'smoke-active' : ''}`}
+              onClick={deploySmoke}
+              disabled={smokeCharges <= 0 || isSmokeActive || phase !== PHASES.HEIST}
+              title="Deploy Tactical Smoke Cloak (Press E)"
+            >
+              <span className="smoke-icon">💨</span>
+              <span className="smoke-text">
+                {isSmokeActive ? 'ACTIVE' : `SMOKE (${smokeCharges})`}
+              </span>
+            </button>
+          )}
+
+          {/* Active Status Effects */}
+          {empActive && (
+            <div className="hud-status-chip emp-chip" title="Guards blinded!">
+              ⚡ EMP {empTimeLeft}s
+            </div>
+          )}
+          {thermalRadarActive && (
+            <div className="hud-status-chip radar-chip" title="Infrared radar tracking guards">
+              📡 RADAR
+            </div>
+          )}
         </div>
 
         {/* Dynamic Objective Step Badge */}
         <div className="hud-objective-badge">
-          {!inventory.hasKey && (
-            <span className="obj-step obj-step-key">1. FIND KEY</span>
-          )}
-          {inventory.hasKey && !inventory.hasDiamond && (
-            <span className="obj-step obj-step-gem">2. GET DIAMOND</span>
-          )}
-          {inventory.hasDiamond && (
-            <span className="obj-step obj-step-exit">3. REACH EXIT!</span>
+          {rawLevel.levelNumber === 5 && !terminalHacked ? (
+            <span className="obj-step obj-step-terminal">1. HACK TERMINAL 💻</span>
+          ) : !inventory.hasKey ? (
+            <span className="obj-step obj-step-key">{rawLevel.levelNumber === 5 ? '2. FIND KEY' : '1. FIND KEY'}</span>
+          ) : !inventory.hasDiamond ? (
+            <span className="obj-step obj-step-gem">{rawLevel.levelNumber === 5 ? '3. GET DIAMOND' : '2. GET DIAMOND'}</span>
+          ) : (
+            <span className="obj-step obj-step-exit">{rawLevel.levelNumber === 5 ? '4. REACH EXIT!' : '3. REACH EXIT!'}</span>
           )}
         </div>
 
@@ -684,25 +819,43 @@ export function GameScreen({
           </button>
         </div>
 
-        {!isPractice && (
-          <button
-            className="mobile-flash-btn"
-            onTouchStart={(e) => { e.preventDefault(); triggerMemoryFlash(); }}
-            onClick={triggerMemoryFlash}
-            disabled={flashesRemaining <= 0 || phase !== PHASES.HEIST}
-            aria-label="Trigger Memory Flash"
-          >
-            <span>FLASH</span>
-            <small>({flashesRemaining} / {GAME_CONFIG.MAX_FLASHES})</small>
-          </button>
-        )}
+        <div className="mobile-actions-group">
+          {!isPractice && (
+            <button
+              className="mobile-flash-btn"
+              onTouchStart={(e) => { e.preventDefault(); triggerMemoryFlash(); }}
+              onClick={triggerMemoryFlash}
+              disabled={flashesRemaining <= 0 || phase !== PHASES.HEIST}
+              aria-label="Trigger Memory Flash"
+            >
+              <span>FLASH</span>
+              <small>({flashesRemaining} / {GAME_CONFIG.MAX_FLASHES})</small>
+            </button>
+          )}
+
+          {(smokeCharges > 0 || rawLevel.levelNumber === 5) && !isPractice && (
+            <button
+              className={`mobile-smoke-btn ${isSmokeActive ? 'smoke-active' : ''}`}
+              onTouchStart={(e) => { e.preventDefault(); deploySmoke(); }}
+              onClick={deploySmoke}
+              disabled={smokeCharges <= 0 || isSmokeActive || phase !== PHASES.HEIST}
+              aria-label="Deploy Tactical Smoke"
+            >
+              <span>💨 SMOKE</span>
+              <small>({isSmokeActive ? 'ACTIVE' : `${smokeCharges} LEFT`})</small>
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Desktop Controls Legend Bar (Bottom of Image 2 top-left) */}
+      {/* Desktop Controls Legend Bar */}
       <div className="controls-legend-bar">
         <span>Move: <span className="keycap">W</span> <span className="keycap">A</span> <span className="keycap">S</span> <span className="keycap">D</span> / Arrows</span>
         {!isPractice && (
           <span>Reveal: <span className="keycap">Space</span> ({flashesRemaining} left)</span>
+        )}
+        {(smokeCharges > 0 || rawLevel.levelNumber === 5) && !isPractice && (
+          <span>Smoke: <span className="keycap">E</span> ({smokeCharges} left)</span>
         )}
         <span>Pause: <span className="keycap">Esc</span></span>
       </div>

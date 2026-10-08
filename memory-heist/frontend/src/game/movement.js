@@ -70,6 +70,12 @@ export function attemptPlayerMove(state, direction) {
     updates.message = 'Diamond stolen! Head to the exit immediately.';
   }
 
+  // If stepping on Security Terminal
+  if (targetTile === TILES.TERMINAL) {
+    updates.terminalHacked = true;
+    updates.message = '⚡ TERMINAL OVERRIDDEN! EMP deployed: Guards blinded & Thermal Radar online!';
+  }
+
   // If stepping on Exit
   if (targetTile === TILES.EXIT) {
     updates.exitReached = true;

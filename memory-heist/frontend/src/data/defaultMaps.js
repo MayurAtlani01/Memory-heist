@@ -1146,12 +1146,12 @@ export const DEFAULT_MAPS = [
   {
     "levelNumber": 5,
     "name": "The Grand Heist",
-    "description": "The ultimate challenge. 4 synchronized patrol officers protecting the multi-layered bank fortress. Every step must be planned.",
+    "description": "The ultimate master infiltration. Infiltrate the Security Terminal (💻) on the west wing to trigger an EMP blackout & thermal radar. Deploy tactical Smoke Decoys (💨) to slip past synchronized patrols.",
     "difficulty": "MASTER",
     "width": 18,
     "height": 18,
-    "memorizeTimeSeconds": 7,
-    "timeLimitSeconds": 90,
+    "memorizeTimeSeconds": 14,
+    "timeLimitSeconds": 100,
     "grid": [
       [
         1,
@@ -1315,7 +1315,7 @@ export const DEFAULT_MAPS = [
       ],
       [
         1,
-        0,
+        7,
         1,
         0,
         0,
@@ -1530,6 +1530,10 @@ export const DEFAULT_MAPS = [
       "x": 11,
       "y": 8
     },
+    "terminal": {
+      "x": 1,
+      "y": 8
+    },
     "exit": {
       "x": 16,
       "y": 16
@@ -1538,100 +1542,88 @@ export const DEFAULT_MAPS = [
       {
         "id": "guard-1",
         "patrolPath": [
-          {
-            "x": 3,
-            "y": 4
-          },
-          {
-            "x": 7,
-            "y": 4
-          },
-          {
-            "x": 11,
-            "y": 4
-          },
-          {
-            "x": 14,
-            "y": 4
-          },
-          {
-            "x": 9,
-            "y": 4
-          }
+          { "x": 4, "y": 4 },
+          { "x": 5, "y": 4 },
+          { "x": 6, "y": 4 },
+          { "x": 7, "y": 4 },
+          { "x": 8, "y": 4 },
+          { "x": 9, "y": 4 },
+          { "x": 10, "y": 4 },
+          { "x": 11, "y": 4 },
+          { "x": 12, "y": 4 },
+          { "x": 13, "y": 4 },
+          { "x": 12, "y": 4 },
+          { "x": 11, "y": 4 },
+          { "x": 10, "y": 4 },
+          { "x": 9, "y": 4 },
+          { "x": 8, "y": 4 },
+          { "x": 7, "y": 4 },
+          { "x": 6, "y": 4 },
+          { "x": 5, "y": 4 }
         ],
-        "moveIntervalMs": 580,
+        "moveIntervalMs": 650,
         "initialFacing": "RIGHT",
-        "visionRange": 4
+        "visionRange": 3
       },
       {
         "id": "guard-2",
         "patrolPath": [
-          {
-            "x": 14,
-            "y": 6
-          },
-          {
-            "x": 14,
-            "y": 9
-          },
-          {
-            "x": 14,
-            "y": 12
-          },
-          {
-            "x": 14,
-            "y": 9
-          }
+          { "x": 14, "y": 6 },
+          { "x": 14, "y": 7 },
+          { "x": 14, "y": 8 },
+          { "x": 14, "y": 9 },
+          { "x": 14, "y": 10 },
+          { "x": 14, "y": 11 },
+          { "x": 14, "y": 12 },
+          { "x": 14, "y": 11 },
+          { "x": 14, "y": 10 },
+          { "x": 14, "y": 9 },
+          { "x": 14, "y": 8 },
+          { "x": 14, "y": 7 }
         ],
-        "moveIntervalMs": 600,
+        "moveIntervalMs": 680,
         "initialFacing": "DOWN",
         "visionRange": 3
       },
       {
         "id": "guard-3",
         "patrolPath": [
-          {
-            "x": 12,
-            "y": 13
-          },
-          {
-            "x": 8,
-            "y": 13
-          },
-          {
-            "x": 4,
-            "y": 13
-          },
-          {
-            "x": 8,
-            "y": 13
-          }
+          { "x": 12, "y": 13 },
+          { "x": 11, "y": 13 },
+          { "x": 10, "y": 13 },
+          { "x": 9, "y": 13 },
+          { "x": 8, "y": 13 },
+          { "x": 7, "y": 13 },
+          { "x": 6, "y": 13 },
+          { "x": 5, "y": 13 },
+          { "x": 6, "y": 13 },
+          { "x": 7, "y": 13 },
+          { "x": 8, "y": 13 },
+          { "x": 9, "y": 13 },
+          { "x": 10, "y": 13 },
+          { "x": 11, "y": 13 }
         ],
-        "moveIntervalMs": 620,
+        "moveIntervalMs": 660,
         "initialFacing": "LEFT",
         "visionRange": 3
       },
       {
         "id": "guard-4",
         "patrolPath": [
-          {
-            "x": 3,
-            "y": 11
-          },
-          {
-            "x": 3,
-            "y": 8
-          },
-          {
-            "x": 3,
-            "y": 5
-          },
-          {
-            "x": 3,
-            "y": 8
-          }
+          { "x": 3, "y": 11 },
+          { "x": 3, "y": 10 },
+          { "x": 3, "y": 9 },
+          { "x": 3, "y": 8 },
+          { "x": 3, "y": 7 },
+          { "x": 3, "y": 6 },
+          { "x": 3, "y": 5 },
+          { "x": 3, "y": 6 },
+          { "x": 3, "y": 7 },
+          { "x": 3, "y": 8 },
+          { "x": 3, "y": 9 },
+          { "x": 3, "y": 10 }
         ],
-        "moveIntervalMs": 600,
+        "moveIntervalMs": 680,
         "initialFacing": "UP",
         "visionRange": 3
       }

@@ -20,6 +20,7 @@ export function parseLevel(rawLevel) {
   const key = rawLevel.key ? { ...rawLevel.key } : null;
   let door = rawLevel.door ? { ...rawLevel.door } : null;
   const diamond = rawLevel.diamond ? { ...rawLevel.diamond } : null;
+  const terminal = rawLevel.terminal ? { ...rawLevel.terminal } : null;
   const exit = rawLevel.exit ? { ...rawLevel.exit } : null;
 
   // Auto-detect door from grid if not specified
@@ -65,6 +66,7 @@ export function parseLevel(rawLevel) {
     key,
     door,
     diamond,
+    terminal,
     exit,
     guards
   };
