@@ -1362,6 +1362,39 @@ button {
   transform: scale(1.2);
 }
 
+.hud-objective-badge {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  background: rgba(5, 11, 24, 0.8);
+  border: 1px solid var(--border-color);
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  border-radius: 2px;
+}
+
+.obj-step-key {
+  color: var(--amber-gold);
+  text-shadow: 0 0 5px rgba(255, 181, 27, 0.5);
+}
+
+.obj-step-gem {
+  color: var(--cyan-bright);
+  text-shadow: 0 0 5px rgba(37, 199, 255, 0.5);
+}
+
+.obj-step-exit {
+  color: var(--emerald-green);
+  text-shadow: 0 0 6px rgba(25, 217, 155, 0.7);
+  animation: pixelPulse 1.2s infinite alternate ease-in-out;
+}
+
+@keyframes pixelPulse {
+  0% { transform: scale(1); opacity: 0.85; }
+  100% { transform: scale(1.04); opacity: 1; text-shadow: 0 0 10px rgba(25, 217, 155, 0.9); }
+}
+
 .hud-actions-group {
   display: flex;
   align-items: center;
@@ -2401,6 +2434,15 @@ button {
   .hud-actions-group .btn-sm {
     padding: 4px 6px;
     font-size: 8px;
+  }
+
+  .hud-objective-badge {
+    padding: 3px 6px;
+    font-size: 7px;
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    margin-top: 2px;
   }
 
   /* Auth Screen */

@@ -18,9 +18,22 @@ export function parseLevel(rawLevel) {
   // Clone positions
   const entrance = { ...rawLevel.entrance };
   const key = rawLevel.key ? { ...rawLevel.key } : null;
-  const door = rawLevel.door ? { ...rawLevel.door } : null;
+  let door = rawLevel.door ? { ...rawLevel.door } : null;
   const diamond = rawLevel.diamond ? { ...rawLevel.diamond } : null;
   const exit = rawLevel.exit ? { ...rawLevel.exit } : null;
+
+  // Auto-detect door from grid if not specified
+  if (!door) {
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (grid[y][x] === TILES.DOOR) {
+          door = { x, y };
+          break;
+        }
+      }
+      if (door) break;
+    }
+  }
 
   // Clone guards with runtime state
   const guards = (rawLevel.guards || []).map((g) => ({

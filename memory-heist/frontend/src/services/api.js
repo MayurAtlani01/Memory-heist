@@ -131,6 +131,20 @@ export async function fetchLevel(levelId) {
         .single();
 
       if (!error && data) {
+        // Auto-detect door position from grid if not stored explicitly
+        let doorPos = data.door || data.door_pos || null;
+        if (!doorPos && Array.isArray(data.grid)) {
+          for (let y = 0; y < data.grid.length; y++) {
+            for (let x = 0; x < data.grid[y].length; x++) {
+              if (data.grid[y][x] === 2) {
+                doorPos = { x, y };
+                break;
+              }
+            }
+            if (doorPos) break;
+          }
+        }
+
         return {
           id: data.id,
           levelNumber: data.level_number,
@@ -147,6 +161,7 @@ export async function fetchLevel(levelId) {
           exit: data.exit,
           key: data.key_pos,
           diamond: data.diamond_pos,
+          door: doorPos,
           guards: data.guards || []
         };
       }
@@ -354,7 +369,7 @@ export async function fetchProgress(playerId) {
 /**
  * Local score formula fallback (matches backend ScoreCalculator exactly)
  */
-function calculateLocalScore(success, timeTakenSeconds, timeLimitSeconds, flashesUsed) {
+export function calculateLocalScore(success, timeTakenSeconds, timeLimitSeconds, flashesUsed) {
   if (!success) {
     return { baseScore: 0, timeBonus: 0, flashBonus: 0, totalScore: 0 };
   }

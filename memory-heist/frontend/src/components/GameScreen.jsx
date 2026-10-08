@@ -8,7 +8,7 @@ import { stepGuard, checkDetection } from '../game/guardPatrol.js';
 import { renderCanvas } from '../game/canvasRenderer.js';
 import { ResultModal } from './ResultModal.jsx';
 import { PixelIcon } from './PixelIcon.jsx';
-import { createAttempt, completeAttempt } from '../services/api.js';
+import { createAttempt, completeAttempt, calculateLocalScore } from '../services/api.js';
 
 export function GameScreen({
   rawLevel,
@@ -106,6 +106,21 @@ export function GameScreen({
     const timeTaken = Math.max(1, Math.round(timeLimit - (s.heistRemainingMs / 1000)));
     const flashesUsed = GAME_CONFIG.MAX_FLASHES - s.flashesLeft;
 
+    // 1. Calculate instant local result so ResultModal appears immediately (0 delay)
+    const localScore = calculateLocalScore(success, timeTaken, timeLimit, flashesUsed);
+    const instantResult = {
+      id: activeAttemptId || 'local_att_' + Date.now(),
+      success,
+      timeTakenSeconds: timeTaken,
+      timeLimitSeconds: timeLimit,
+      flashesUsed,
+      reason,
+      score: localScore.totalScore,
+      scoreBreakdown: localScore,
+      savedRemotely: false
+    };
+    setAttemptResult(instantResult);
+
     const payload = {
       levelId: s.level.id || `level-${s.level.levelNumber}`,
       playerId,
@@ -117,11 +132,14 @@ export function GameScreen({
       reason
     };
 
+    // 2. Persist to Supabase / Backend asynchronously without blocking the UI
     try {
-      const result = await completeAttempt(activeAttemptId || 'local_att_' + Date.now(), payload);
-      setAttemptResult(result);
+      const result = await completeAttempt(activeAttemptId || instantResult.id, payload);
+      if (result) {
+        setAttemptResult(result);
+      }
     } catch (err) {
-      console.error('Error completing attempt:', err);
+      console.error('Remote attempt completion error (preserved local score):', err);
     }
   }, [activeAttemptId, isPractice, playerId]);
 
@@ -207,20 +225,33 @@ export function GameScreen({
 
       if (moveResult.keyCollected) {
         s.inventory.hasKey = true;
-        if (s.level.door) {
-          s.grid[s.level.door.y][s.level.door.x] = 0; // EMPTY
+        // Turn all door tiles into open tiles so vault entrance is clearly unlocked
+        for (let r = 0; r < s.grid.length; r++) {
+          for (let c = 0; c < s.grid[r].length; c++) {
+            if (s.grid[r][c] === 2) {
+              s.grid[r][c] = 0; // EMPTY
+            }
+          }
         }
         setInventory({ ...s.inventory });
-        showToast(moveResult.message);
+        showToast('Brass Key secured! Vault doors unlocked.', 3000);
+      }
+
+      if (moveResult.doorUnlocked) {
+        s.grid[moveResult.newY][moveResult.newX] = 0;
       }
 
       if (moveResult.diamondCollected) {
         s.inventory.hasDiamond = true;
-        if (s.level.diamond) {
-          s.grid[s.level.diamond.y][s.level.diamond.x] = 0; // EMPTY
+        s.grid[moveResult.newY][moveResult.newX] = 0;
+
+        // In Level 1: Open the emergency extraction path at (7, 4) so player can run straight down to EXIT!
+        if (s.level.levelNumber === 1 && s.grid[4] && s.grid[4][7] === 1) {
+          s.grid[4][7] = 0;
         }
+
         setInventory({ ...s.inventory });
-        showToast(moveResult.message);
+        showToast('💎 Diamond stolen! Extraction route open — head to EXIT!', 4000);
       }
 
       if (moveResult.exitReached) {
@@ -228,7 +259,7 @@ export function GameScreen({
           handleAttemptEnd(true, 'DIAMOND_SECURED');
           return;
         } else {
-          showToast(moveResult.message, 3000);
+          showToast('⚠️ EXTRACTION DENIED: Secure Key & Diamond first!', 4000);
         }
       }
 
@@ -542,6 +573,19 @@ export function GameScreen({
           )}
         </div>
 
+        {/* Dynamic Objective Step Badge */}
+        <div className="hud-objective-badge">
+          {!inventory.hasKey && (
+            <span className="obj-step obj-step-key">1. FIND KEY</span>
+          )}
+          {inventory.hasKey && !inventory.hasDiamond && (
+            <span className="obj-step obj-step-gem">2. GET DIAMOND</span>
+          )}
+          {inventory.hasDiamond && (
+            <span className="obj-step obj-step-exit">3. REACH EXIT!</span>
+          )}
+        </div>
+
         {/* Action Controls */}
         <div className="hud-actions-group">
           {phase === PHASES.HEIST && (
@@ -549,11 +593,11 @@ export function GameScreen({
               {isPaused ? 'RESUME' : 'PAUSE'}
             </button>
           )}
-          <button className="btn btn-secondary btn-sm" onClick={resetGame} id="restart-btn">
+          <button className="btn btn-secondary btn-sm" onClick={resetGame} id="restart-btn" title="Restart Level">
             <PixelIcon name="restart" size={12} /> RESTART
           </button>
-          <button className="btn btn-secondary btn-sm" onClick={onExitToSelect} id="exit-btn">
-            <PixelIcon name="vaults" size={12} /> VAULTS
+          <button className="btn btn-secondary btn-sm" onClick={onExitToSelect} id="exit-btn" title="Exit to Vault Selection">
+            <PixelIcon name="vaults" size={12} /> EXIT
           </button>
         </div>
       </div>
@@ -580,12 +624,15 @@ export function GameScreen({
               <p className="pause-note">
                 Blueprint schematics hidden to preserve tactical integrity. Resume when ready.
               </p>
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.25rem' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem', flexWrap: 'wrap', justifyContent: 'center' }}>
                 <button className="btn btn-primary" onClick={togglePause}>
                   RESUME HEIST
                 </button>
                 <button className="btn btn-danger" onClick={resetGame}>
                   RESTART VAULT
+                </button>
+                <button className="btn btn-secondary" onClick={onExitToSelect} id="pause-exit-btn">
+                  <PixelIcon name="vaults" size={14} /> EXIT TO VAULTS
                 </button>
               </div>
             </div>
